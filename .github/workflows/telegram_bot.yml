@@ -1,0 +1,38 @@
+name: Send Daily MCQ Questions
+
+on:
+  schedule:
+    # Runs at 03:30 UTC, which is 9:00 AM IST
+    - cron: '30 3 * * *'
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  send_questions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Send questions
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
+        run: python main.py
+
+      - name: Commit and push last index
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add last_question_index.txt
+          git commit -m "Update last question index" || echo "No changes to commit"
+          git push
