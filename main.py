@@ -3,9 +3,10 @@ import json
 import telegram
 import asyncio
 
-# Get secrets from environment variables
-BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-CHAT_IDS = os.environ.get("TELEGRAM_CHAT_IDS").split(',')
+# Get secrets from environment variables and strip whitespace
+BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+chat_ids_str = os.environ.get("TELEGRAM_CHAT_IDS", "").strip()
+CHAT_IDS = [chat_id.strip() for chat_id in chat_ids_str.split(',') if chat_id.strip()]
 
 # Path to the questions file
 QUESTIONS_FILE = 'questions.json'
@@ -29,7 +30,7 @@ def update_last_index(index):
 async def main():
     """Main function to send the questions."""
     if not BOT_TOKEN or not CHAT_IDS:
-        print("Error: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_IDS environment variables are not set.")
+        print("Error: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_IDS environment variables are not set or are empty.")
         return
 
     bot = telegram.Bot(token=BOT_TOKEN)
@@ -54,8 +55,6 @@ async def main():
                 await bot.send_message(chat_id=chat_id, text=message)
             except Exception as e:
                 print(f"Failed to send completion message to {chat_id}: {e}")
-        # Reset index for the next cycle if needed, or just stop.
-        # For now, we'll just stop. To restart, delete last_question_index.txt
         return
 
     questions_to_send = questions[last_index : last_index + 20]
@@ -83,7 +82,6 @@ async def main():
         except (KeyError, IndexError) as e:
             print(f"Skipping malformed question data: {question_data}. Error: {e}")
             continue
-
 
     new_index = last_index + len(questions_to_send)
     update_last_index(new_index)
